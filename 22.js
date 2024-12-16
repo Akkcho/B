@@ -69,36 +69,33 @@ const environmentInstance = new Env("Blued增强功能-Eric");
       return scriptText.trim(); // 去掉文本前后空白
     }
 
-    // 从环境中获取已保存的密码和脚本是否启用的状态
-    const savedPassword = environmentInstance.getdata("EricPassword"),
-      isScriptEnabled = environmentInstance.getdata("scriptvip");
-
-    // 验证密码的函数
-    function validatePassword(inputPassword, expectedPassword) {
-      const encodedPassword = encodeToBase64(inputPassword); // 进行 Base64 编码
-      return encodedPassword === expectedPassword; // 返回比较结果
-    }
-
-    // 如果没有保存密码，则设置一个默认提示
-    if (!savedPassword) environmentInstance.setdata("TG联系咨询", "EricPassword");
+    // 去除密码验证相关的逻辑，直接跳过密码检查
 
     // 检查脚本是否启用
+    const isScriptEnabled = environmentInstance.getdata("scriptvip");
+
+    // 如果脚本没有启用，则退出
     if (isScriptEnabled !== "true") {
       console.log("Script is disabled via BoxJS."); // 日志记录
       environmentInstance.done({}); // 完成并退出
       return;
     }
 
-    // 获取密码脚本
-    const fetchedPassword = await fetchPasswordScript();
-    
-    // 验证密码
-    if (!validatePassword(savedPassword, fetchedPassword)) {
-      console.error("密码验证失败"); // 日志记录
-      environmentInstance.msg("密码验证失败", "请检查 BoxJS 配置中的密码", ""); // 弹窗提示
-      environmentInstance.done({}); // 完成并退出
-      return;
-    }
+    // 执行其余功能
+    const fetchedPassword = await fetchPasswordScript(); // 获取密码脚本
+    // 直接执行后续逻辑，无需验证密码
+
+    console.log("脚本已启用，继续执行后续功能。");
+
+    // 这里可以继续执行你的其他功能
+    // 执行相关操作，如用户数据处理等
+
+  } catch (error) {
+    console.error("脚本执行出错:", error); // 错误日志
+    environmentInstance.done({}); // 完成并退出
+  }
+})();
+
 
     // 定义 URL 模式，用于后续的请求匹配
     const urlPatterns = {
