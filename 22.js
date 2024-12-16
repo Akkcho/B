@@ -62,25 +62,8 @@ const environmentInstance = new Env("Blued增强功能-Eric");
       return atob(input);
     }
 
-    // 异步函数，用于获取密码脚本
-    async function fetchPasswordScript() {
-      const response = await fetch("https://gist.githubusercontent.com/Alex0510/2f220cbae58f770e572c688594d52393/raw/password.js");
-      const scriptText = await response.text();
-      return scriptText.trim(); // 去掉文本前后空白
-    }
-
-    // 从环境中获取已保存的密码和脚本是否启用的状态
-    const savedPassword = environmentInstance.getdata("EricPassword"),
-      isScriptEnabled = environmentInstance.getdata("scriptvip");
-
-    // 验证密码的函数
-    function validatePassword(inputPassword, expectedPassword) {
-      const encodedPassword = encodeToBase64(inputPassword); // 进行 Base64 编码
-      return encodedPassword === expectedPassword; // 返回比较结果
-    }
-
-    // 如果没有保存密码，则设置一个默认提示
-    if (!savedPassword) environmentInstance.setdata("TG联系咨询", "EricPassword");
+    // 从环境中获取脚本是否启用的状态
+    const isScriptEnabled = environmentInstance.getdata("scriptvip");
 
     // 检查脚本是否启用
     if (isScriptEnabled !== "true") {
@@ -88,31 +71,6 @@ const environmentInstance = new Env("Blued增强功能-Eric");
       environmentInstance.done({}); // 完成并退出
       return;
     }
-
-    // 获取密码脚本
-    const fetchedPassword = await fetchPasswordScript();
-    
-    // 验证密码
-    if (!validatePassword(savedPassword, fetchedPassword)) {
-      console.error("密码验证失败"); // 日志记录
-      environmentInstance.msg("密码验证失败", "请检查 BoxJS 配置中的密码", ""); // 弹窗提示
-      environmentInstance.done({}); // 完成并退出
-      return;
-    }
-
-    // 定义 URL 模式，用于后续的请求匹配
-    const urlPatterns = {
-      "basicInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/basic/,
-      "moreInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/more\/ios.*/,
-      "flashInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/flash/,
-      "shadowInfo": /https:\/\/.*\.blued\.cn\/users\/shadow/,
-      "exchangeCountInfo": /https:\/\/.*\.blued\.cn\/users\/fair\/exchange\/count/,
-      "settingsInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/setting/,
-      "aaidInfo": /https:\/\/.*\.blued\.cn\/users\?(column|aaid)=/,
-      "visitorInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/visitors\?aaid=/,
-      "notLivingInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\?is_living=false/,
-      "mapInfo": /https:\/\/.*\.blued\.cn\/users\/map/
-    };
 
     const currentUrl = $request.url; // 当前请求的 URL
 
@@ -289,6 +247,11 @@ const environmentInstance = new Env("Blued增强功能-Eric");
         });
       }
     }
+
+  } catch (error) {
+    console.error("Error:", error);
+  }
+})();
 
     // 处理兑换数量响应的函数
     function handleExchangeCountResponse() {
