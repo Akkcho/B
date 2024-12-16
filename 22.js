@@ -98,6 +98,7 @@ const environmentInstance = new Env("Blued增强功能-Eric");
 
 
 
+
     // 定义 URL 模式，用于后续的请求匹配
     const urlPatterns = {
       "basicInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/basic/,
