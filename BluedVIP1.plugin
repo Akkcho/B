@@ -1,8 +1,7 @@
 #!name=Blued
 #!desc=查看隐藏距离，查看保密的最后在线时间，捕获闪照视频,等功能。
-#!icon=https://raw.githubusercontent.com/Akkcho/Loon-icon/icon/Blued.png
+#!icon=https://raw.githubusercontent.com/Akkcho/Loon-icon/main/icon/Blued.png
 #!keyword=Blued_Chat
-#!homepage=https://t.me/+A1cOYwvOdeI4MWNl
 
 [Argument]
 arg1 = switch,false,tag=Blued闪照
