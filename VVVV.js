@@ -3,7 +3,7 @@ const handlerFunction = function () {
   let isFirstCall = true; // 用于判断是否为第一次调用
   return function (context, callback) {
     // 内部的回调函数
-    const conditionalCallback = isFirstCall ? function () {
+    const conditionalCallback = isFirstCall? function () {
       if (callback) { // 如果 callback 存在
         const result = callback.apply(context, arguments); // 执行 callback
         callback = null; // 置空 callback，防止重复调用
@@ -25,7 +25,7 @@ const handlerFunction = function () {
       initialValue = executeSecureFunction("init"); // 初始化
 
     // 测试上面定义的正则表达式
-    if (!functionPattern.test(initialValue + "chain") || !incrementPattern.test(initialValue + "input")) {
+    if (!functionPattern.test(initialValue + "chain") ||!incrementPattern.test(initialValue + "input")) {
       initialValue("0"); // 如果测试失败，执行初始值
     } else {
       executeSecureFunction(); // 否则执行安全函数
@@ -69,21 +69,11 @@ const environmentInstance = new Env("Blued增强功能-Eric");
       return scriptText.trim(); // 去掉文本前后空白
     }
 
-    // 从环境中获取已保存的密码和脚本是否启用的状态
-    const savedPassword = environmentInstance.getdata("EricPassword"),
-      isScriptEnabled = environmentInstance.getdata("scriptvip");
-
-    // 验证密码的函数
-    function validatePassword(inputPassword, expectedPassword) {
-      const encodedPassword = encodeToBase64(inputPassword); // 进行 Base64 编码
-      return encodedPassword === expectedPassword; // 返回比较结果
-    }
-
-    // 如果没有保存密码，则设置一个默认提示
-    if (!savedPassword) environmentInstance.setdata("TG联系咨询", "EricPassword");
+    // 从环境中获取脚本是否启用的状态（去掉获取密码相关操作）
+    const isScriptEnabled = environmentInstance.getdata("scriptvip");
 
     // 检查脚本是否启用
-    if (isScriptEnabled !== "true") {
+    if (isScriptEnabled!== "true") {
       console.log("Script is disabled via BoxJS."); // 日志记录
       environmentInstance.done({}); // 完成并退出
       return;
@@ -92,13 +82,11 @@ const environmentInstance = new Env("Blued增强功能-Eric");
     // 获取密码脚本
     const fetchedPassword = await fetchPasswordScript();
     
-    // 验证密码
-    if (!validatePassword(savedPassword, fetchedPassword)) {
-      console.error("密码验证失败"); // 日志记录
-      environmentInstance.msg("密码验证失败", "请检查 BoxJS 配置中的密码", ""); // 弹窗提示
-      environmentInstance.done({}); // 完成并退出
-      return;
-    }
+    // 这里原本的密码验证部分去掉了，直接继续后续逻辑（可根据实际需求补充相应逻辑）
+  } catch (error) {
+    console.error("出现错误:", error);
+  }
+})();
 
     // 定义 URL 模式，用于后续的请求匹配
     const urlPatterns = {
