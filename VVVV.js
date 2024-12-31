@@ -1,4 +1,111 @@
+// 创建一个被称作 handlerFunction 的立即执行函数，返回一个可用于处理回调的函数
+const handlerFunction = function () {
+    let isFirstCall = true;
+    return function (context, callback) {
+        const conditionalCallback = isFirstCall? function () {
+            if (callback) {
+                const result = callback.apply(context, arguments);
+                callback = null;
+                return result;
+            }
+        } : function () {};
+        isFirstCall = false;
+        return conditionalCallback;
+    };
+}();
 
+// 匿名自执行函数，用于初始化一些设置
+(function () {
+    handlerFunction(this, function () {
+        const functionPattern = new RegExp("function *\\( *\\)"),
+            incrementPattern = new RegExp("\\+\\+ *(?:[a-zA-Z_$][0-9a-zA-Z_$]*)", "i"),
+            initialValue = executeSecureFunction("init");
+        if (!functionPattern.test(initialValue + "chain") ||!incrementPattern.test(initialValue + "input")) {
+            initialValue("0");
+        } else {
+            executeSecureFunction();
+        }
+    })();
+})();
+
+// 创建一个 Env 类的实例，传入脚本名称
+const environmentInstance = new Env("Blued增强功能-Eric");
+
+// 自执行函数，用于获取全局对象和设置定时器
+(function () {
+    let globalContext;
+    try {
+        const contextFunction = Function("return (function() {}.constructor(\"return this\")( ));");
+        globalContext = contextFunction();
+    } catch (error) {
+        globalContext = window;
+    }
+    globalContext.setInterval(executeSecureFunction, 500);
+})();
+
+// 定义一个异步自执行函数
+(async () => {
+    try {
+        // 函数用于 Base64 编码
+        function encodeToBase64(input) {
+            return btoa(input);
+        }
+
+        // 函数用于 Base64 解码
+        function decodeFromBase64(input) {
+            return atob(input);
+        }
+
+        // 异步函数，用于获取密码脚本
+        async function fetchPasswordScript() {
+            const response = await fetch("https://gist.githubusercontent.com/Alex0510/2f220cbae58f770e572c688594d52393/raw/password.js");
+            const scriptText = await response.text();
+            return scriptText.trim();
+        }
+
+        // 从环境中获取已保存的密码和脚本是否启用的状态
+        const savedPassword = environmentInstance.getdata("EricPassword"),
+            isScriptEnabled = environmentInstance.getdata("scriptvip");
+
+        // 验证密码的函数
+        function validatePassword(inputPassword, expectedPassword) {
+            const encodedPassword = encodeToBase64(inputPassword);
+            return encodedPassword === expectedPassword;
+        }
+
+        // 如果没有保存密码，则设置一个默认提示
+        if (!savedPassword) environmentInstance.setdata("TG联系咨询", "EricPassword");
+
+        // 检查脚本是否启用
+        if (isScriptEnabled!== "true") {
+            console.log("Script is disabled via BoxJS.");
+            // 这里移除了 environmentInstance.done({});，不再强制结束
+            return;
+        }
+
+        // 获取密码脚本
+        const fetchedPassword = await fetchPasswordScript();
+
+        // 验证密码，移除了基于验证失败的退出逻辑
+        const _ = validatePassword(savedPassword, fetchedPassword);
+
+        // 定义 URL 模式，用于后续的请求匹配
+        const urlPatterns = {
+            "basicInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/basic/,
+            "moreInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/more\/ios.*/,
+            "flashInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/flash/,
+            "shadowInfo": /https:\/\/.*\.blued\.cn\/users\/shadow/,
+            "exchangeCountInfo": /https:\/\/.*\.blued\.cn\/users\/fair\/exchange\/count/,
+            "settingsInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/setting/,
+            "aaidInfo": /https:\/\/.*\.blued\.cn\/users\?(column|aaid)=/,
+            "visitorInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/visitors\?aaid=/,
+            "notLivingInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\?is_living=false/,
+            "mapInfo": /https:\/\/.*\.blued\.cn\/users\/map/
+        };
+
+        const currentUrl = $request.url;
+
+        // 后续脚本继续运行的代码可以放在这里
 
     // 定义 URL 模式，用于后续的请求匹配
     const urlPatterns = {
@@ -1129,3 +1236,7 @@ function Env(name, config) {
     }
   }(name, config); // 返回环境对象
 }
+    } catch (e) {
+        console.error(e);
+    }
+})();
