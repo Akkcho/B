@@ -63,90 +63,65 @@ const environmentInstance = new Env("Blued增强功能-Eric");
             return scriptText.trim();
         }
 
-        // 从环境中获取已保存的密码和脚本是否启用的状态
-        const savedPassword = environmentInstance.getdata("EricPassword"),
-            isScriptEnabled = environmentInstance.getdata("scriptvip");
+       // 从环境中获取已保存的密码和脚本是否启用的状态
+const savedPassword = environmentInstance.getdata("EricPassword"),
+    isScriptEnabled = environmentInstance.getdata("scriptvip");
 
-        // 验证密码的函数
-        function validatePassword(inputPassword, expectedPassword) {
-            const encodedPassword = encodeToBase64(inputPassword);
-            return encodedPassword === expectedPassword;
-        }
+// 检查脚本是否启用
+if (isScriptEnabled!== "true") {
+    console.log("Script is disabled via BoxJS.");
+    environmentInstance.done({});
+    return;
+}
 
-        // 如果没有保存密码，则设置一个默认提示
-        if (!savedPassword) environmentInstance.setdata("TG联系咨询", "EricPassword");
+// 获取密码脚本
+const fetchedPassword = await fetchPasswordScript();
 
-        // 检查脚本是否启用
-        if (isScriptEnabled!== "true") {
-            console.log("Script is disabled via BoxJS.");
-            // 这里移除了 environmentInstance.done({});，不再强制结束
-            return;
-        }
+// 验证密码
+const isPasswordValid = validatePassword(savedPassword, fetchedPassword);
+if (!isPasswordValid) {
+    console.error("密码验证失败");
+}
 
-        // 获取密码脚本
-        const fetchedPassword = await fetchPasswordScript();
+// 定义 URL 模式，用于后续的请求匹配
+const urlPatterns = {
+    "basicInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/basic/,
+    "moreInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/more\/ios.*/,
+    "flashInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/flash/,
+    "shadowInfo": /https:\/\/.*\.blued\.cn\/users\/shadow/,
+    "exchangeCountInfo": /https:\/\/.*\.blued\.cn\/users\/fair\/exchange\/count/,
+    "settingsInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/setting/,
+    "aaidInfo": /https:\/\/.*\.blued\.cn\/users\?(column|aaid)=/,
+    "visitorInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/visitors\?aaid=/,
+    "notLivingInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\?is_living=false/,
+    "mapInfo": /https:\/\/.*\.blued\.cn\/users\/map/
+};
 
-        // 验证密码，移除了基于验证失败的退出逻辑
-        const _ = validatePassword(savedPassword, fetchedPassword);
-
-        // 定义 URL 模式，用于后续的请求匹配
-        const urlPatterns = {
-            "basicInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/basic/,
-            "moreInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/more\/ios.*/,
-            "flashInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/flash/,
-            "shadowInfo": /https:\/\/.*\.blued\.cn\/users\/shadow/,
-            "exchangeCountInfo": /https:\/\/.*\.blued\.cn\/users\/fair\/exchange\/count/,
-            "settingsInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/setting/,
-            "aaidInfo": /https:\/\/.*\.blued\.cn\/users\?(column|aaid)=/,
-            "visitorInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/visitors\?aaid=/,
-            "notLivingInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\?is_living=false/,
-            "mapInfo": /https:\/\/.*\.blued\.cn\/users\/map/
-        };
-
-        const currentUrl = $request.url;
-
-        // 后续脚本继续运行的代码可以放在这里
-
-    // 定义 URL 模式，用于后续的请求匹配
-    const urlPatterns = {
-      "basicInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/basic/,
-      "moreInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/more\/ios.*/,
-      "flashInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/flash/,
-      "shadowInfo": /https:\/\/.*\.blued\.cn\/users\/shadow/,
-      "exchangeCountInfo": /https:\/\/.*\.blued\.cn\/users\/fair\/exchange\/count/,
-      "settingsInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/setting/,
-      "aaidInfo": /https:\/\/.*\.blued\.cn\/users\?(column|aaid)=/,
-      "visitorInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/visitors\?aaid=/,
-      "notLivingInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\?is_living=false/,
-      "mapInfo": /https:\/\/.*\.blued\.cn\/users\/map/
-    };
-
-    const currentUrl = $request.url; // 当前请求的 URL
-
-    // 根据当前 URL 进行相应处理
-    if (urlPatterns.basicInfo.test(currentUrl)) {
-      handleBasicInfoResponse(); // 处理基本信息响应
-    } else if (urlPatterns.moreInfo.test(currentUrl)) {
-      handleMoreInfoResponse(); // 处理更多信息响应
-    } else if (urlPatterns.flashInfo.test(currentUrl)) {
-      handleFlashInfoResponse(); // 处理闪光信息响应
-    } else if (urlPatterns.shadowInfo.test(currentUrl)) {
-      handleShadowInfoResponse(); // 处理影子信息响应
-    } else if (urlPatterns.exchangeCountInfo.test(currentUrl)) {
-      handleExchangeCountResponse(); // 处理兑换数量响应
-    } else if (urlPatterns.settingsInfo.test(currentUrl)) {
-      handleSettingsResponse(); // 处理设置信息响应
-    } else if (urlPatterns.aaidInfo.test(currentUrl)) {
-      handleAaidResponse(); // 处理 aaid 信息响应
-    } else if (urlPatterns.notLivingInfo.test(currentUrl)) {
-      handleNotLivingResponse(); // 处理非在线信息响应
-    } else if (urlPatterns.mapInfo.test(currentUrl)) {
-      handleMapResponse(); // 处理地图信息响应
-    } else if (urlPatterns.visitorInfo.test(currentUrl)) {
-      handleVisitorResponse(); // 处理访问者信息响应
-    } else {
-      $done({}); // 如果没有匹配的情况，完成处理并退出
-    }
+const currentUrl = $request.url;
+// 根据当前 URL 进行相应处理
+if (urlPatterns.basicInfo.test(currentUrl)) {
+    handleBasicInfoResponse();
+} else if (urlPatterns.moreInfo.test(currentUrl)) {
+    handleMoreInfoResponse();
+} else if (urlPatterns.flashInfo.test(currentUrl)) {
+    handleFlashInfoResponse();
+} else if (urlPatterns.shadowInfo.test(currentUrl)) {
+    handleShadowInfoResponse();
+} else if (urlPatterns.exchangeCountInfo.test(currentUrl)) {
+    handleExchangeCountResponse();
+} else if (urlPatterns.settingsInfo.test(currentUrl)) {
+    handleSettingsResponse();
+} else if (urlPatterns.aaidInfo.test(currentUrl)) {
+    handleAaidResponse();
+} else if (urlPatterns.notLivingInfo.test(currentUrl)) {
+    handleNotLivingResponse();
+} else if (urlPatterns.mapInfo.test(currentUrl)) {
+    handleMapResponse();
+} else if (urlPatterns.visitorInfo.test(currentUrl)) {
+    handleVisitorResponse();
+} else {
+    $done({});
+}
 
     // 处理基本信息响应的函数
     function handleBasicInfoResponse() {
