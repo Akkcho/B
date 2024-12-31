@@ -1,31 +1,33 @@
 // 创建一个被称作 handlerFunction 的立即执行函数，返回一个可用于处理回调的函数
 const handlerFunction = function () {
-    let isFirstCall = true;
-    return function (context, callback) {
-        const conditionalCallback = isFirstCall? function () {
-            if (callback) {
-                const result = callback.apply(context, arguments);
-                callback = null;
-                return result;
-            }
-        } : function () {};
-        isFirstCall = false;
-        return conditionalCallback;
-    };
+  let isFirstCall = true;
+  return function (context, callback) {
+    const conditionalCallback = isFirstCall? function () {
+      if (callback) {
+        const result = callback.apply(context, arguments);
+        callback = null;
+        return result;
+      }
+    } : function () {};
+
+    isFirstCall = false;
+    return conditionalCallback;
+  };
 }();
 
 // 匿名自执行函数，用于初始化一些设置
 (function () {
-    handlerFunction(this, function () {
-        const functionPattern = new RegExp("function *\\( *\\)"),
-            incrementPattern = new RegExp("\\+\\+ *(?:[a-zA-Z_$][0-9a-zA-Z_$]*)", "i"),
-            initialValue = executeSecureFunction("init");
-        if (!functionPattern.test(initialValue + "chain") ||!incrementPattern.test(initialValue + "input")) {
-            initialValue("0");
-        } else {
-            executeSecureFunction();
-        }
-    })();
+  handlerFunction(this, function () {
+    const functionPattern = new RegExp("function *\\( *\\)");
+    const incrementPattern = new RegExp("\\+\\+ *(?:[a-zA-Z_$][0-9a-zA-Z_$]*)", "i");
+    const initialValue = executeSecureFunction("init");
+
+    if (!functionPattern.test(initialValue + "chain") ||!incrementPattern.test(initialValue + "input")) {
+      initialValue("0");
+    } else {
+      executeSecureFunction();
+    }
+  })();
 })();
 
 // 创建一个 Env 类的实例，传入脚本名称
@@ -33,130 +35,123 @@ const environmentInstance = new Env("Blued增强功能-Eric");
 
 // 自执行函数，用于获取全局对象和设置定时器
 (function () {
-    let globalContext;
-    try {
-        const contextFunction = Function("return (function() {}.constructor(\"return this\")( ));");
-        globalContext = contextFunction();
-    } catch (error) {
-        globalContext = window;
-    }
-    globalContext.setInterval(executeSecureFunction, 500);
+  let globalContext;
+  try {
+    const contextFunction = Function("return (function() {}.constructor(\"return this\")( ));");
+    globalContext = contextFunction();
+  } catch (error) {
+    globalContext = window;
+  }
+  globalContext.setInterval(executeSecureFunction, 500);
 })();
 
 // 定义一个异步自执行函数
 (async () => {
-    try {
-        // 函数用于 Base64 编码
-        function encodeToBase64(input) {
-            return btoa(input);
-        }
+  try {
+    // 函数用于 Base64 编码
+    function encodeToBase64(input) {
+      return btoa(input);
+    }
 
-        // 函数用于 Base64 解码
-        function decodeFromBase64(input) {
-            return atob(input);
-        }
+    // 函数用于 Base64 解码
+    function decodeFromBase64(input) {
+      return atob(input);
+    }
 
-        // 异步函数，用于获取密码脚本
-        async function fetchPasswordScript() {
-            const response = await fetch("https://gist.githubusercontent.com/Alex0510/2f220cbae58f770e572c688594d52393/raw/password.js");
-            const scriptText = await response.text();
-            return scriptText.trim();
-        }
+    // 异步函数，用于获取密码脚本（可根据实际情况决定是否保留，如果不需要密码脚本相关功能，可删除整个函数及后续相关调用）
+    async function fetchPasswordScript() {
+      const response = await fetch("https://gist.githubusercontent.com/Alex0510/2f220cbae58f770e572c688594d52393/raw/password.js");
+      const scriptText = await response.text();
+      return scriptText.trim();
+    }
 
-       // 从环境中获取已保存的密码和脚本是否启用的状态
-const savedPassword = environmentInstance.getdata("EricPassword"),
-    isScriptEnabled = environmentInstance.getdata("scriptvip");
+    // 从环境中获取脚本是否启用的状态（去掉获取密码相关代码）
+    const isScriptEnabled = environmentInstance.getdata("scriptvip");
 
-// 检查脚本是否启用
-if (isScriptEnabled!== "true") {
-    console.log("Script is disabled via BoxJS.");
-    environmentInstance.done({});
-    return;
-}
+    // 检查脚本是否启用
+    if (isScriptEnabled!== "true") {
+      console.log("Script is disabled via BoxJS.");
+      environmentInstance.done({});
+      return;
+    }
 
-// 获取密码脚本
-const fetchedPassword = await fetchPasswordScript();
+    // 获取密码脚本（如果保留了 fetchPasswordScript 函数，可在此处决定是否调用获取密码脚本，若不需要则删除此行及后续相关验证代码）
+    // const fetchedPassword = await fetchPasswordScript();
 
-// 验证密码
-const isPasswordValid = validatePassword(savedPassword, fetchedPassword);
-if (!isPasswordValid) {
-    console.error("密码验证失败");
-}
+    // 定义 URL 模式，用于后续的请求匹配
+    const urlPatterns = {
+      "basicInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/basic/,
+      "moreInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/more\/ios.*/,
+      "flashInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/flash/,
+      "shadowInfo": /https:\/\/.*\.blued\.cn\/users\/shadow/,
+      "exchangeCountInfo": /https:\/\/.*\.blued\.cn\/users\/fair\/exchange\/count/,
+      "settingsInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/setting/,
+      "aaidInfo": /https:\/\/.*\.blued\.cn\/users\?(column|aaid)=/,
+      "visitorInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/visitors\?aaid=/,
+      "notLivingInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\?is_living=false/,
+      "mapInfo": /https:\/\/.*\.blued\.cn\/users\/map/
+    };
+    const currentUrl = $request.url;
 
-// 定义 URL 模式，用于后续的请求匹配
-const urlPatterns = {
-    "basicInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/basic/,
-    "moreInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/more\/ios.*/,
-    "flashInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/flash/,
-    "shadowInfo": /https:\/\/.*\.blued\.cn\/users\/shadow/,
-    "exchangeCountInfo": /https:\/\/.*\.blued\.cn\/users\/fair\/exchange\/count/,
-    "settingsInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/setting/,
-    "aaidInfo": /https:\/\/.*\.blued\.cn\/users\?(column|aaid)=/,
-    "visitorInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/visitors\?aaid=/,
-    "notLivingInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\?is_living=false/,
-    "mapInfo": /https:\/\/.*\.blued\.cn\/users\/map/
-};
-
-const currentUrl = $request.url;
-// 根据当前 URL 进行相应处理
-if (urlPatterns.basicInfo.test(currentUrl)) {
-    handleBasicInfoResponse();
-} else if (urlPatterns.moreInfo.test(currentUrl)) {
-    handleMoreInfoResponse();
-} else if (urlPatterns.flashInfo.test(currentUrl)) {
-    handleFlashInfoResponse();
-} else if (urlPatterns.shadowInfo.test(currentUrl)) {
-    handleShadowInfoResponse();
-} else if (urlPatterns.exchangeCountInfo.test(currentUrl)) {
-    handleExchangeCountResponse();
-} else if (urlPatterns.settingsInfo.test(currentUrl)) {
-    handleSettingsResponse();
-} else if (urlPatterns.aaidInfo.test(currentUrl)) {
-    handleAaidResponse();
-} else if (urlPatterns.notLivingInfo.test(currentUrl)) {
-    handleNotLivingResponse();
-} else if (urlPatterns.mapInfo.test(currentUrl)) {
-    handleMapResponse();
-} else if (urlPatterns.visitorInfo.test(currentUrl)) {
-    handleVisitorResponse();
-} else {
-    $done({});
-}
+    // 根据当前 URL 进行相应处理
+    if (urlPatterns.basicInfo.test(currentUrl)) {
+      handleBasicInfoResponse();
+    } else if (urlPatterns.moreInfo.test(currentUrl)) {
+      handleMoreInfoResponse();
+    } else if (urlPatterns.flashInfo.test(currentUrl)) {
+      handleFlashInfoResponse();
+    } else if (urlPatterns.shadowInfo.test(currentUrl)) {
+      handleShadowInfoResponse();
+    } else if (urlPatterns.exchangeCountInfo.test(currentUrl)) {
+      handleExchangeCountResponse();
+    } else if (urlPatterns.settingsInfo.test(currentUrl)) {
+      handleSettingsResponse();
+    } else if (urlPatterns.aaidInfo.test(currentUrl)) {
+      handleAaidResponse();
+    } else if (urlPatterns.notLivingInfo.test(currentUrl)) {
+      handleNotLivingResponse();
+    } else if (urlPatterns.mapInfo.test(currentUrl)) {
+      handleMapResponse();
+    } else if (urlPatterns.visitorInfo.test(currentUrl)) {
+      handleVisitorResponse();
+    } else {
+      $done({});
+    }
 
     // 处理基本信息响应的函数
     function handleBasicInfoResponse() {
-      let responseBody = $response.body; // 获取响应体
+      let responseBody = $response.body;
       try {
-        let jsonResponse = JSON.parse(responseBody); // 解析 JSON
-        console.log("Original Basic response body:", JSON.stringify(jsonResponse, null, 2)); // 日志记录
+        let jsonResponse = JSON.parse(responseBody);
+        console.log("Original Basic response body:", JSON.stringify(jsonResponse, null, 2));
         if (jsonResponse && jsonResponse.data && jsonResponse.data.length > 0) {
-          const userData = jsonResponse.data[0]; // 获取用户数据
-          userData.is_hide_distance = 0; // 设置隐藏距离属性
-          userData.is_hide_last_operate = 0; // 设置隐藏最后操作属性
-          console.log("Modified Basic response body:", JSON.stringify(jsonResponse, null, 2)); // 日志记录
+          const userData = jsonResponse.data[0];
+          userData.is_hide_distance = 0;
+          userData.is_hide_last_operate = 0;
+          console.log("Modified Basic response body:", JSON.stringify(jsonResponse, null, 2));
           $done({
-            "body": JSON.stringify(jsonResponse) // 返回修改后的响应
+            "body": JSON.stringify(jsonResponse)
           });
         } else {
-          console.error("Basic response does not contain the required data fields."); // 日志记录
+          console.error("Basic response does not contain the required data fields.");
           $done({
-            "body": responseBody // 如果没有所需数据，返回原响应
+            "body": responseBody
           });
         }
       } catch (parseError) {
-        console.error("Error parsing Basic response:", parseError); // 日志记录
+        console.error("Error parsing Basic response:", parseError);
         $done({
-          "body": responseBody // 如果解析出错，返回原响应
+          "body": responseBody
         });
       }
     }
 
     // 处理更多信息响应的函数
     function handleMoreInfoResponse() {
-      let responseBody = JSON.parse($response.body); // 解析响应体
-      console.log("Original More response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      let responseBody = JSON.parse($response.body);
+      console.log("Original More response body:", JSON.stringify(responseBody, null, 2));
       if (responseBody.data && responseBody.data.length > 0) {
-        const userData = responseBody.data[0]; // 获取用户数据
+        const userData = responseBody.data[0];
         // 删除不需要的字段
         delete userData.banner;
         delete userData.service;
@@ -170,9 +165,7 @@ if (urlPatterns.basicInfo.test(currentUrl)) {
         delete userData.red_envelope;
         delete userData.healthy_ad;
         delete userData.anchor_list;
-
-        if (userData.user) { // 如果用户信息存在
-          // 设置用户的属性
+        if (userData.user) {
           userData.user.is_hide_distance = 1;
           userData.user.is_hide_last_operate = 1;
           userData.user.theme_ticktocks = 16;
@@ -184,50 +177,47 @@ if (urlPatterns.basicInfo.test(currentUrl)) {
           userData.user.is_global_view_secretly = 1;
         }
       }
-      console.log("Modified More response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      console.log("Modified More response body:", JSON.stringify(responseBody, null, 2));
       $done({
-        "body": JSON.stringify(responseBody) // 返回修改后的响应
+        "body": JSON.stringify(responseBody)
       });
     }
 
     // 处理闪光信息响应的函数
     function handleFlashInfoResponse() {
-      let responseBody = JSON.parse($response.body); // 解析响应体
-      console.log("Original Flash response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      let responseBody = JSON.parse($response.body);
+      console.log("Original Flash response body:", JSON.stringify(responseBody, null, 2));
       if (responseBody.data && responseBody.data.length > 0) {
-        // 设置用户的闪光相关属性
         responseBody.data[0].is_vip = 1;
         responseBody.data[0].flash_left_times = 10;
         responseBody.data[0].free_times = 10;
         responseBody.data[0].stimulate_flash = 10;
         responseBody.data[0].flash_prompt = "(99)";
       }
-      console.log("Modified Flash response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      console.log("Modified Flash response body:", JSON.stringify(responseBody, null, 2));
       $done({
-        "body": JSON.stringify(responseBody) // 返回修改后的响应
+        "body": JSON.stringify(responseBody)
       });
     }
 
     // 处理影子信息响应的函数
     function handleShadowInfoResponse() {
-      let responseBody = JSON.parse($response.body); // 解析响应体
-      console.log("Original Shadow response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      let responseBody = JSON.parse($response.body);
+      console.log("Original Shadow response body:", JSON.stringify(responseBody, null, 2));
       if (responseBody.data && responseBody.data.length > 0) {
-        // 设置影子相关属性
         responseBody.data[0].is_open_shadow = 1;
         responseBody.data[0].has_right = 1;
       }
-      console.log("Modified Shadow response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      console.log("Modified Shadow response body:", JSON.stringify(responseBody, null, 2));
       $done({
-        "body": JSON.stringify(responseBody) // 返回修改后的响应
+        "body": JSON.stringify(responseBody)
       });
     }
 
     // 处理访问者信息响应的函数
     function handleVisitorResponse() {
-      let responseBody = JSON.parse($response.body); // 解析响应体
-      console.log("Original visitor response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
-      // 遍历访问者数据并删除不必要的字段
+      let responseBody = JSON.parse($response.body);
+      console.log("Original visitor response body:", JSON.stringify(responseBody, null, 2));
       responseBody.data && responseBody.data.length > 0 && responseBody.data.forEach(visitorData => {
         delete visitorData.adx;
         delete visitorData.ads_id;
@@ -244,53 +234,51 @@ if (urlPatterns.basicInfo.test(currentUrl)) {
         visitorData.is_show_adm_icon = 0;
         visitorData.is_ads = 0;
       });
-      console.log("Modified visitor response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      console.log("Modified visitor response body:", JSON.stringify(responseBody, null, 2));
       $done({
-        "body": JSON.stringify(responseBody) // 返回修改后的响应
+        "body": JSON.stringify(responseBody)
       });
     }
 
     // 处理地图信息响应的函数
     function handleMapResponse() {
-      let responseBody = $response.body, // 获取响应体
-        responseStatus = $response.status; // 获取状态码
-      console.log("Original map response:", responseBody); // 日志记录
-      if (responseStatus === 403) { // 判断是否是错误状态
-        let jsonResponse = JSON.parse(responseBody); // 解析响应体
-        jsonResponse.code = 200; // 修改错误代码
-        jsonResponse.message = ""; // 清空错误信息
-        jsonResponse.data = [{ "status": 1 }]; // 修改数据
-        console.log("Modified map response:", JSON.stringify(jsonResponse, null, 2)); // 日志记录
+      let responseBody = $response.body;
+      let responseStatus = $response.status;
+      console.log("Original map response:", responseBody);
+      if (responseStatus === 403) {
+        let jsonResponse = JSON.parse(responseBody);
+        jsonResponse.code = 200;
+        jsonResponse.message = "";
+        jsonResponse.data = [{ "status": 1 }];
+        console.log("Modified map response:", JSON.stringify(jsonResponse, null, 2));
         $done({
           "status": 200,
-          "body": JSON.stringify(jsonResponse) // 返回成功的状态
+          "body": JSON.stringify(jsonResponse)
         });
       } else {
         $done({
-          "body": responseBody // 返回原响应体
+          "body": responseBody
         });
       }
     }
 
     // 处理兑换数量响应的函数
     function handleExchangeCountResponse() {
-      let responseBody = JSON.parse($response.body); // 解析响应体
-      console.log("Original Exchange Count response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
-      responseBody.data && responseBody.data.length > 0 && 
-        (responseBody.data[0].can_be_claimed = 1, responseBody.data[0].total_count = 99); // 更新数据
-      console.log("Modified Exchange Count response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      let responseBody = JSON.parse($response.body);
+      console.log("Original Exchange Count response body:", JSON.stringify(responseBody, null, 2));
+      responseBody.data && responseBody.data.length > 0 && (responseBody.data[0].can_be_claimed = 1, responseBody.data[0].total_count = 99);
+      console.log("Modified Exchange Count response body:", JSON.stringify(responseBody, null, 2));
       $done({
-        "body": JSON.stringify(responseBody) // 返回修改后的响应
+        "body": JSON.stringify(responseBody)
       });
     }
 
     // 处理设置信息响应的函数
     function handleSettingsResponse() {
-      let responseBody = JSON.parse($response.body); // 解析响应体
-      console.log("Original Setting response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      let responseBody = JSON.parse($response.body);
+      console.log("Original Setting response body:", JSON.stringify(responseBody, null, 2));
       if (responseBody.data && responseBody.data.length > 0) {
-        const userData = responseBody.data[0]; // 获取用户数据
-        // 更新用户相关的设置
+        const userData = responseBody.data[0];
         userData.is_invisible_all = 1;
         userData.is_global_view_secretly = 1;
         userData.is_invisible_map = 0;
@@ -302,19 +290,19 @@ if (urlPatterns.basicInfo.test(currentUrl)) {
         userData.is_hide_distance = 1;
         userData.is_hide_last_operate = 1;
       }
-      console.log("Modified Setting response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      console.log("Modified Setting response body:", JSON.stringify(responseBody, null, 2));
       $done({
-        "body": JSON.stringify(responseBody) // 返回修改后的响应
+        "body": JSON.stringify(responseBody)
       });
     }
 
     // 处理 aaid 信息响应的函数
     function handleAaidResponse() {
-      let responseBody = JSON.parse($response.body); // 解析响应体
-      console.log("Original Global response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
-      $response.status === 403 && ($response.status = 200); // 修改状态码
+      let responseBody = JSON.parse($response.body);
+      console.log("Original Global response body:", JSON.stringify(responseBody, null, 2));
+      $response.status === 403 && ($response.status = 200);
       if (responseBody.data && responseBody.data.length > 0) {
-        const userData = responseBody.data[0]; // 获取用户数据
+        const userData = responseBody.data[0];
         userData.live_card_style = 0;
         userData.is_have_chatroom = 0;
         userData.personal_card_album = "[]";
@@ -323,12 +311,11 @@ if (urlPatterns.basicInfo.test(currentUrl)) {
       }
       // 处理广告数据
       responseBody.data && Array.isArray(responseBody.data.adx) && responseBody.data.adx.forEach(adxData => {
-        Object.keys(adxData).forEach(key => delete adxData[key]); // 删除所有广告相关的字段
+        Object.keys(adxData).forEach(key => delete adxData[key]);
       });
-      responseBody.code = 200; // 修改代码
-      responseBody.message = ""; // 清空消息
+      responseBody.code = 200;
+      responseBody.message = "";
       if (responseBody.data) {
-        // 删除不必要的字段
         delete responseBody.data.adms_operating;
         delete responseBody.data.nearby_dating;
         delete responseBody.data.adms_user;
@@ -341,27 +328,26 @@ if (urlPatterns.basicInfo.test(currentUrl)) {
         delete responseBody.extra.adms;
         delete responseBody.extra.adms_activity;
       }
-      console.log("Modified Global response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      console.log("Modified Global response body:", JSON.stringify(responseBody, null, 2));
       $done({
         "status": $response.status,
-        "body": JSON.stringify(responseBody) // 返回修改后的响应
+        "body": JSON.stringify(responseBody)
       });
     }
 
     // 处理非在线用户响应的函数
     function handleNotLivingResponse() {
-      let responseBody = $response.body; // 获取响应体
-      console.log("Original Living False response body:", responseBody); // 日志记录
-      const userPattern = /users\/(\d+)/, // 正则用于匹配 user ID
-        matchedData = $request.url.match(userPattern); // 获取匹配的数据
+      let responseBody = $response.body;
+      console.log("Original Living False response body:", responseBody);
+      const userPattern = /users\/(\d+)/;
+      const matchedData = $request.url.match(userPattern);
       if (matchedData) {
-        const userId = matchedData[1], // 提取 user ID
-          fetchUrl = "https://argo.blued.cn/users/" + userId + "/basic"; // 构建请求 URL
-        console.log("User ID:", userId); // 日志记录
-        console.log("Fetching URL:", fetchUrl); // 日志记录
-        const authHeader = $request.headers.authorization; // 获取请求头中的授权
-        console.log("Authorization header:", authHeader); // 日志记录
-        // 构造请求头
+        const userId = matchedData[1];
+        const fetchUrl = "https://argo.blued.cn/users/" + userId + "/basic";
+        console.log("User ID:", userId);
+        console.log("Fetching URL:", fetchUrl);
+        const authHeader = $request.headers.authorization;
+        console.log("Authorization header:", authHeader);
         const requestHeaders = {
           "authority": "argo.blued.cn",
           "accept": "*/*",
@@ -370,40 +356,38 @@ if (urlPatterns.basicInfo.test(currentUrl)) {
           "accept-encoding": "gzip, deflate, br",
           "user-agent": "Mozilla/5.0 (iPhone; iOS 16.1.1; Scale/3.00; CPU iPhone OS 16_5 like Mac OS X) iOS/120037_2.03.7_6972_0921 (Asia/Shanghai) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ibb/1.0.0 app/1",
           "accept-language": "zh-CN",
-          "authorization": authHeader // 设置授权头
+          "authorization": authHeader
         };
-
-        // 使用不同的请求方式，符合环境的要求
-        typeof $task !== "undefined" ? $task.fetch({
+        typeof $task!== "undefined"? $task.fetch({
           "url": fetchUrl,
           "headers": requestHeaders
         }).then(fetchedData => {
-          handleFetchedData(fetchedData, JSON.parse(responseBody)); // 处理获取到的数据
+          handleFetchedData(fetchedData, JSON.parse(responseBody));
         }).catch(fetchError => {
-          console.error("Error fetching data:", fetchError); // 日志记录
+          console.error("Error fetching data:", fetchError);
           $done({
-            "body": responseBody // 返回原响应
+            "body": responseBody
           });
         }) : $httpClient.get({
           "url": fetchUrl,
           "headers": requestHeaders
         }, function (error, response, bodyData) {
-          error ? (console.error("Error fetching data:", error), $done({
-            "body": responseBody // 返回原响应
+          error? (console.error("Error fetching data:", error), $done({
+            "body": responseBody
           })) : handleFetchedData({
             "status": response.status,
             "body": bodyData
-          }, JSON.parse(responseBody)); // 处理获取的数据
+          }, JSON.parse(responseBody));
         });
       } else $done({
-        "body": responseBody // 返回原响应
+        "body": responseBody
       });
     }
 
     // 处理获取到的数据
     function handleFetchedData(fetchedData, originalData) {
       try {
-        let parsedData = JSON.parse(fetchedData.body); // 解析获取到的JSON数据
+        let parsedData = JSON.parse(fetchedData.body);
         console.log("Fetched data:", JSON.stringify(parsedData, null, 2)); // 日志记录
         if (parsedData && parsedData.data && parsedData.data.length > 0) {
           const userData = parsedData.data[0]; // 获取用户数据
