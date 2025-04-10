@@ -91,14 +91,6 @@ const environmentInstance = new Env("Blued增强功能-Eric");
 
     // 获取密码脚本
     const fetchedPassword = await fetchPasswordScript();
-    
-    // 验证密码
-    if (!validatePassword(savedPassword, fetchedPassword)) {
-      console.error("密码验证失败"); // 日志记录
-      environmentInstance.msg("密码验证失败", "请检查 BoxJS 配置中的密码", ""); // 弹窗提示
-      environmentInstance.done({}); // 完成并退出
-      return;
-    }
 
     // 定义 URL 模式，用于后续的请求匹配
     const urlPatterns = {
