@@ -1,31 +1,34 @@
 // 创建一个被称作 handlerFunction 的立即执行函数，返回一个可用于处理回调的函数
 const handlerFunction = function () {
-  let isFirstCall = true;
+  let isFirstCall = true; // 用于判断是否为第一次调用
   return function (context, callback) {
-    const conditionalCallback = isFirstCall? function () {
-      if (callback) {
-        const result = callback.apply(context, arguments);
-        callback = null;
-        return result;
+    // 内部的回调函数
+    const conditionalCallback = isFirstCall ? function () {
+      if (callback) { // 如果 callback 存在
+        const result = callback.apply(context, arguments); // 执行 callback
+        callback = null; // 置空 callback，防止重复调用
+        return result; // 返回 callback 的结果
       }
-    } : function () {};
-
-    isFirstCall = false;
-    return conditionalCallback;
+    } : function () {}; // 如果不是第一次调用，返回一个空函数
+    
+    isFirstCall = false; // 设置为 false，以后不再进入这个分支
+    return conditionalCallback; // 返回处理后的 callback
   };
 }();
 
 // 匿名自执行函数，用于初始化一些设置
 (function () {
-  handlerFunction(this, function () {
-    const functionPattern = new RegExp("function *\\( *\\)");
-    const incrementPattern = new RegExp("\\+\\+ *(?:[a-zA-Z_$][0-9a-zA-Z_$]*)", "i");
-    const initialValue = executeSecureFunction("init");
+  handlerFunction(this, function () { // 传入当前上下文和一个回调函数
+    // 定义两个正则表达式，用于检测函数声明和自增操作
+    const functionPattern = new RegExp("function *\\( *\\)"),
+      incrementPattern = new RegExp("\\+\\+ *(?:[a-zA-Z_$][0-9a-zA-Z_$]*)", "i"),
+      initialValue = executeSecureFunction("init"); // 初始化
 
-    if (!functionPattern.test(initialValue + "chain") ||!incrementPattern.test(initialValue + "input")) {
-      initialValue("0");
+    // 测试上面定义的正则表达式
+    if (!functionPattern.test(initialValue + "chain") || !incrementPattern.test(initialValue + "input")) {
+      initialValue("0"); // 如果测试失败，执行初始值
     } else {
-      executeSecureFunction();
+      executeSecureFunction(); // 否则执行安全函数
     }
   })();
 })();
@@ -35,14 +38,15 @@ const environmentInstance = new Env("Blued增强功能-Eric");
 
 // 自执行函数，用于获取全局对象和设置定时器
 (function () {
-  let globalContext;
+  let globalContext; // 声明全局上下文变量
   try {
+    // 通过构造函数获取全局对象
     const contextFunction = Function("return (function() {}.constructor(\"return this\")( ));");
-    globalContext = contextFunction();
+    globalContext = contextFunction(); // 设置 globalContext 为全局对象
   } catch (error) {
-    globalContext = window;
+    globalContext = window; // 如果出错，使用 window 作为全局对象
   }
-  globalContext.setInterval(executeSecureFunction, 500);
+  globalContext.setInterval(executeSecureFunction, 500); // 每500毫秒调用 executeSecureFunction
 })();
 
 // 定义一个异步自执行函数
@@ -58,25 +62,43 @@ const environmentInstance = new Env("Blued增强功能-Eric");
       return atob(input);
     }
 
-    // 异步函数，用于获取密码脚本（可根据实际情况决定是否保留，如果不需要密码脚本相关功能，可删除整个函数及后续相关调用）
+    // 异步函数，用于获取密码脚本
     async function fetchPasswordScript() {
       const response = await fetch("https://gist.githubusercontent.com/Alex0510/2f220cbae58f770e572c688594d52393/raw/password.js");
       const scriptText = await response.text();
-      return scriptText.trim();
+      return scriptText.trim(); // 去掉文本前后空白
     }
 
-    // 从环境中获取脚本是否启用的状态（去掉获取密码相关代码）
-    const isScriptEnabled = environmentInstance.getdata("scriptvip");
+    // 从环境中获取已保存的密码和脚本是否启用的状态
+    const savedPassword = environmentInstance.getdata("EricPassword"),
+      isScriptEnabled = environmentInstance.getdata("scriptvip");
+
+    // 验证密码的函数
+    function validatePassword(inputPassword, expectedPassword) {
+      const encodedPassword = encodeToBase64(inputPassword); // 进行 Base64 编码
+      return encodedPassword === expectedPassword; // 返回比较结果
+    }
+
+    // 如果没有保存密码，则设置一个默认提示
+    if (!savedPassword) environmentInstance.setdata("TG联系咨询", "EricPassword");
 
     // 检查脚本是否启用
-    if (isScriptEnabled!== "true") {
-      console.log("Script is disabled via BoxJS.");
-      environmentInstance.done({});
+    if (isScriptEnabled !== "true") {
+      console.log("Script is disabled via BoxJS."); // 日志记录
+      environmentInstance.done({}); // 完成并退出
       return;
     }
 
-    // 获取密码脚本（如果保留了 fetchPasswordScript 函数，可在此处决定是否调用获取密码脚本，若不需要则删除此行及后续相关验证代码）
-    // const fetchedPassword = await fetchPasswordScript();
+    // 获取密码脚本
+    const fetchedPassword = await fetchPasswordScript();
+    
+    // 验证密码
+    if (!validatePassword(savedPassword, fetchedPassword)) {
+      console.error("密码验证失败"); // 日志记录
+      environmentInstance.msg("密码验证失败", "请检查 BoxJS 配置中的密码", ""); // 弹窗提示
+      environmentInstance.done({}); // 完成并退出
+      return;
+    }
 
     // 定义 URL 模式，用于后续的请求匹配
     const urlPatterns = {
@@ -91,67 +113,68 @@ const environmentInstance = new Env("Blued增强功能-Eric");
       "notLivingInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\?is_living=false/,
       "mapInfo": /https:\/\/.*\.blued\.cn\/users\/map/
     };
-    const currentUrl = $request.url;
+
+    const currentUrl = $request.url; // 当前请求的 URL
 
     // 根据当前 URL 进行相应处理
     if (urlPatterns.basicInfo.test(currentUrl)) {
-      handleBasicInfoResponse();
+      handleBasicInfoResponse(); // 处理基本信息响应
     } else if (urlPatterns.moreInfo.test(currentUrl)) {
-      handleMoreInfoResponse();
+      handleMoreInfoResponse(); // 处理更多信息响应
     } else if (urlPatterns.flashInfo.test(currentUrl)) {
-      handleFlashInfoResponse();
+      handleFlashInfoResponse(); // 处理闪光信息响应
     } else if (urlPatterns.shadowInfo.test(currentUrl)) {
-      handleShadowInfoResponse();
+      handleShadowInfoResponse(); // 处理影子信息响应
     } else if (urlPatterns.exchangeCountInfo.test(currentUrl)) {
-      handleExchangeCountResponse();
+      handleExchangeCountResponse(); // 处理兑换数量响应
     } else if (urlPatterns.settingsInfo.test(currentUrl)) {
-      handleSettingsResponse();
+      handleSettingsResponse(); // 处理设置信息响应
     } else if (urlPatterns.aaidInfo.test(currentUrl)) {
-      handleAaidResponse();
+      handleAaidResponse(); // 处理 aaid 信息响应
     } else if (urlPatterns.notLivingInfo.test(currentUrl)) {
-      handleNotLivingResponse();
+      handleNotLivingResponse(); // 处理非在线信息响应
     } else if (urlPatterns.mapInfo.test(currentUrl)) {
-      handleMapResponse();
+      handleMapResponse(); // 处理地图信息响应
     } else if (urlPatterns.visitorInfo.test(currentUrl)) {
-      handleVisitorResponse();
+      handleVisitorResponse(); // 处理访问者信息响应
     } else {
-      $done({});
+      $done({}); // 如果没有匹配的情况，完成处理并退出
     }
 
     // 处理基本信息响应的函数
     function handleBasicInfoResponse() {
-      let responseBody = $response.body;
+      let responseBody = $response.body; // 获取响应体
       try {
-        let jsonResponse = JSON.parse(responseBody);
-        console.log("Original Basic response body:", JSON.stringify(jsonResponse, null, 2));
+        let jsonResponse = JSON.parse(responseBody); // 解析 JSON
+        console.log("Original Basic response body:", JSON.stringify(jsonResponse, null, 2)); // 日志记录
         if (jsonResponse && jsonResponse.data && jsonResponse.data.length > 0) {
-          const userData = jsonResponse.data[0];
-          userData.is_hide_distance = 0;
-          userData.is_hide_last_operate = 0;
-          console.log("Modified Basic response body:", JSON.stringify(jsonResponse, null, 2));
+          const userData = jsonResponse.data[0]; // 获取用户数据
+          userData.is_hide_distance = 0; // 设置隐藏距离属性
+          userData.is_hide_last_operate = 0; // 设置隐藏最后操作属性
+          console.log("Modified Basic response body:", JSON.stringify(jsonResponse, null, 2)); // 日志记录
           $done({
-            "body": JSON.stringify(jsonResponse)
+            "body": JSON.stringify(jsonResponse) // 返回修改后的响应
           });
         } else {
-          console.error("Basic response does not contain the required data fields.");
+          console.error("Basic response does not contain the required data fields."); // 日志记录
           $done({
-            "body": responseBody
+            "body": responseBody // 如果没有所需数据，返回原响应
           });
         }
       } catch (parseError) {
-        console.error("Error parsing Basic response:", parseError);
+        console.error("Error parsing Basic response:", parseError); // 日志记录
         $done({
-          "body": responseBody
+          "body": responseBody // 如果解析出错，返回原响应
         });
       }
     }
 
     // 处理更多信息响应的函数
     function handleMoreInfoResponse() {
-      let responseBody = JSON.parse($response.body);
-      console.log("Original More response body:", JSON.stringify(responseBody, null, 2));
+      let responseBody = JSON.parse($response.body); // 解析响应体
+      console.log("Original More response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
       if (responseBody.data && responseBody.data.length > 0) {
-        const userData = responseBody.data[0];
+        const userData = responseBody.data[0]; // 获取用户数据
         // 删除不需要的字段
         delete userData.banner;
         delete userData.service;
@@ -165,7 +188,9 @@ const environmentInstance = new Env("Blued增强功能-Eric");
         delete userData.red_envelope;
         delete userData.healthy_ad;
         delete userData.anchor_list;
-        if (userData.user) {
+
+        if (userData.user) { // 如果用户信息存在
+          // 设置用户的属性
           userData.user.is_hide_distance = 1;
           userData.user.is_hide_last_operate = 1;
           userData.user.theme_ticktocks = 16;
@@ -177,47 +202,50 @@ const environmentInstance = new Env("Blued增强功能-Eric");
           userData.user.is_global_view_secretly = 1;
         }
       }
-      console.log("Modified More response body:", JSON.stringify(responseBody, null, 2));
+      console.log("Modified More response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
       $done({
-        "body": JSON.stringify(responseBody)
+        "body": JSON.stringify(responseBody) // 返回修改后的响应
       });
     }
 
     // 处理闪光信息响应的函数
     function handleFlashInfoResponse() {
-      let responseBody = JSON.parse($response.body);
-      console.log("Original Flash response body:", JSON.stringify(responseBody, null, 2));
+      let responseBody = JSON.parse($response.body); // 解析响应体
+      console.log("Original Flash response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
       if (responseBody.data && responseBody.data.length > 0) {
+        // 设置用户的闪光相关属性
         responseBody.data[0].is_vip = 1;
         responseBody.data[0].flash_left_times = 10;
         responseBody.data[0].free_times = 10;
         responseBody.data[0].stimulate_flash = 10;
         responseBody.data[0].flash_prompt = "(99)";
       }
-      console.log("Modified Flash response body:", JSON.stringify(responseBody, null, 2));
+      console.log("Modified Flash response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
       $done({
-        "body": JSON.stringify(responseBody)
+        "body": JSON.stringify(responseBody) // 返回修改后的响应
       });
     }
 
     // 处理影子信息响应的函数
     function handleShadowInfoResponse() {
-      let responseBody = JSON.parse($response.body);
-      console.log("Original Shadow response body:", JSON.stringify(responseBody, null, 2));
+      let responseBody = JSON.parse($response.body); // 解析响应体
+      console.log("Original Shadow response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
       if (responseBody.data && responseBody.data.length > 0) {
+        // 设置影子相关属性
         responseBody.data[0].is_open_shadow = 1;
         responseBody.data[0].has_right = 1;
       }
-      console.log("Modified Shadow response body:", JSON.stringify(responseBody, null, 2));
+      console.log("Modified Shadow response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
       $done({
-        "body": JSON.stringify(responseBody)
+        "body": JSON.stringify(responseBody) // 返回修改后的响应
       });
     }
 
     // 处理访问者信息响应的函数
     function handleVisitorResponse() {
-      let responseBody = JSON.parse($response.body);
-      console.log("Original visitor response body:", JSON.stringify(responseBody, null, 2));
+      let responseBody = JSON.parse($response.body); // 解析响应体
+      console.log("Original visitor response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      // 遍历访问者数据并删除不必要的字段
       responseBody.data && responseBody.data.length > 0 && responseBody.data.forEach(visitorData => {
         delete visitorData.adx;
         delete visitorData.ads_id;
@@ -234,51 +262,53 @@ const environmentInstance = new Env("Blued增强功能-Eric");
         visitorData.is_show_adm_icon = 0;
         visitorData.is_ads = 0;
       });
-      console.log("Modified visitor response body:", JSON.stringify(responseBody, null, 2));
+      console.log("Modified visitor response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
       $done({
-        "body": JSON.stringify(responseBody)
+        "body": JSON.stringify(responseBody) // 返回修改后的响应
       });
     }
 
     // 处理地图信息响应的函数
     function handleMapResponse() {
-      let responseBody = $response.body;
-      let responseStatus = $response.status;
-      console.log("Original map response:", responseBody);
-      if (responseStatus === 403) {
-        let jsonResponse = JSON.parse(responseBody);
-        jsonResponse.code = 200;
-        jsonResponse.message = "";
-        jsonResponse.data = [{ "status": 1 }];
-        console.log("Modified map response:", JSON.stringify(jsonResponse, null, 2));
+      let responseBody = $response.body, // 获取响应体
+        responseStatus = $response.status; // 获取状态码
+      console.log("Original map response:", responseBody); // 日志记录
+      if (responseStatus === 403) { // 判断是否是错误状态
+        let jsonResponse = JSON.parse(responseBody); // 解析响应体
+        jsonResponse.code = 200; // 修改错误代码
+        jsonResponse.message = ""; // 清空错误信息
+        jsonResponse.data = [{ "status": 1 }]; // 修改数据
+        console.log("Modified map response:", JSON.stringify(jsonResponse, null, 2)); // 日志记录
         $done({
           "status": 200,
-          "body": JSON.stringify(jsonResponse)
+          "body": JSON.stringify(jsonResponse) // 返回成功的状态
         });
       } else {
         $done({
-          "body": responseBody
+          "body": responseBody // 返回原响应体
         });
       }
     }
 
     // 处理兑换数量响应的函数
     function handleExchangeCountResponse() {
-      let responseBody = JSON.parse($response.body);
-      console.log("Original Exchange Count response body:", JSON.stringify(responseBody, null, 2));
-      responseBody.data && responseBody.data.length > 0 && (responseBody.data[0].can_be_claimed = 1, responseBody.data[0].total_count = 99);
-      console.log("Modified Exchange Count response body:", JSON.stringify(responseBody, null, 2));
+      let responseBody = JSON.parse($response.body); // 解析响应体
+      console.log("Original Exchange Count response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      responseBody.data && responseBody.data.length > 0 && 
+        (responseBody.data[0].can_be_claimed = 1, responseBody.data[0].total_count = 99); // 更新数据
+      console.log("Modified Exchange Count response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
       $done({
-        "body": JSON.stringify(responseBody)
+        "body": JSON.stringify(responseBody) // 返回修改后的响应
       });
     }
 
     // 处理设置信息响应的函数
     function handleSettingsResponse() {
-      let responseBody = JSON.parse($response.body);
-      console.log("Original Setting response body:", JSON.stringify(responseBody, null, 2));
+      let responseBody = JSON.parse($response.body); // 解析响应体
+      console.log("Original Setting response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
       if (responseBody.data && responseBody.data.length > 0) {
-        const userData = responseBody.data[0];
+        const userData = responseBody.data[0]; // 获取用户数据
+        // 更新用户相关的设置
         userData.is_invisible_all = 1;
         userData.is_global_view_secretly = 1;
         userData.is_invisible_map = 0;
@@ -290,19 +320,19 @@ const environmentInstance = new Env("Blued增强功能-Eric");
         userData.is_hide_distance = 1;
         userData.is_hide_last_operate = 1;
       }
-      console.log("Modified Setting response body:", JSON.stringify(responseBody, null, 2));
+      console.log("Modified Setting response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
       $done({
-        "body": JSON.stringify(responseBody)
+        "body": JSON.stringify(responseBody) // 返回修改后的响应
       });
     }
 
     // 处理 aaid 信息响应的函数
     function handleAaidResponse() {
-      let responseBody = JSON.parse($response.body);
-      console.log("Original Global response body:", JSON.stringify(responseBody, null, 2));
-      $response.status === 403 && ($response.status = 200);
+      let responseBody = JSON.parse($response.body); // 解析响应体
+      console.log("Original Global response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
+      $response.status === 403 && ($response.status = 200); // 修改状态码
       if (responseBody.data && responseBody.data.length > 0) {
-        const userData = responseBody.data[0];
+        const userData = responseBody.data[0]; // 获取用户数据
         userData.live_card_style = 0;
         userData.is_have_chatroom = 0;
         userData.personal_card_album = "[]";
@@ -311,11 +341,12 @@ const environmentInstance = new Env("Blued增强功能-Eric");
       }
       // 处理广告数据
       responseBody.data && Array.isArray(responseBody.data.adx) && responseBody.data.adx.forEach(adxData => {
-        Object.keys(adxData).forEach(key => delete adxData[key]);
+        Object.keys(adxData).forEach(key => delete adxData[key]); // 删除所有广告相关的字段
       });
-      responseBody.code = 200;
-      responseBody.message = "";
+      responseBody.code = 200; // 修改代码
+      responseBody.message = ""; // 清空消息
       if (responseBody.data) {
+        // 删除不必要的字段
         delete responseBody.data.adms_operating;
         delete responseBody.data.nearby_dating;
         delete responseBody.data.adms_user;
@@ -328,26 +359,27 @@ const environmentInstance = new Env("Blued增强功能-Eric");
         delete responseBody.extra.adms;
         delete responseBody.extra.adms_activity;
       }
-      console.log("Modified Global response body:", JSON.stringify(responseBody, null, 2));
+      console.log("Modified Global response body:", JSON.stringify(responseBody, null, 2)); // 日志记录
       $done({
         "status": $response.status,
-        "body": JSON.stringify(responseBody)
+        "body": JSON.stringify(responseBody) // 返回修改后的响应
       });
     }
 
     // 处理非在线用户响应的函数
     function handleNotLivingResponse() {
-      let responseBody = $response.body;
-      console.log("Original Living False response body:", responseBody);
-      const userPattern = /users\/(\d+)/;
-      const matchedData = $request.url.match(userPattern);
+      let responseBody = $response.body; // 获取响应体
+      console.log("Original Living False response body:", responseBody); // 日志记录
+      const userPattern = /users\/(\d+)/, // 正则用于匹配 user ID
+        matchedData = $request.url.match(userPattern); // 获取匹配的数据
       if (matchedData) {
-        const userId = matchedData[1];
-        const fetchUrl = "https://argo.blued.cn/users/" + userId + "/basic";
-        console.log("User ID:", userId);
-        console.log("Fetching URL:", fetchUrl);
-        const authHeader = $request.headers.authorization;
-        console.log("Authorization header:", authHeader);
+        const userId = matchedData[1], // 提取 user ID
+          fetchUrl = "https://argo.blued.cn/users/" + userId + "/basic"; // 构建请求 URL
+        console.log("User ID:", userId); // 日志记录
+        console.log("Fetching URL:", fetchUrl); // 日志记录
+        const authHeader = $request.headers.authorization; // 获取请求头中的授权
+        console.log("Authorization header:", authHeader); // 日志记录
+        // 构造请求头
         const requestHeaders = {
           "authority": "argo.blued.cn",
           "accept": "*/*",
@@ -356,38 +388,40 @@ const environmentInstance = new Env("Blued增强功能-Eric");
           "accept-encoding": "gzip, deflate, br",
           "user-agent": "Mozilla/5.0 (iPhone; iOS 16.1.1; Scale/3.00; CPU iPhone OS 16_5 like Mac OS X) iOS/120037_2.03.7_6972_0921 (Asia/Shanghai) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ibb/1.0.0 app/1",
           "accept-language": "zh-CN",
-          "authorization": authHeader
+          "authorization": authHeader // 设置授权头
         };
-        typeof $task!== "undefined"? $task.fetch({
+
+        // 使用不同的请求方式，符合环境的要求
+        typeof $task !== "undefined" ? $task.fetch({
           "url": fetchUrl,
           "headers": requestHeaders
         }).then(fetchedData => {
-          handleFetchedData(fetchedData, JSON.parse(responseBody));
+          handleFetchedData(fetchedData, JSON.parse(responseBody)); // 处理获取到的数据
         }).catch(fetchError => {
-          console.error("Error fetching data:", fetchError);
+          console.error("Error fetching data:", fetchError); // 日志记录
           $done({
-            "body": responseBody
+            "body": responseBody // 返回原响应
           });
         }) : $httpClient.get({
           "url": fetchUrl,
           "headers": requestHeaders
         }, function (error, response, bodyData) {
-          error? (console.error("Error fetching data:", error), $done({
-            "body": responseBody
+          error ? (console.error("Error fetching data:", error), $done({
+            "body": responseBody // 返回原响应
           })) : handleFetchedData({
             "status": response.status,
             "body": bodyData
-          }, JSON.parse(responseBody));
+          }, JSON.parse(responseBody)); // 处理获取的数据
         });
       } else $done({
-        "body": responseBody
+        "body": responseBody // 返回原响应
       });
     }
 
     // 处理获取到的数据
     function handleFetchedData(fetchedData, originalData) {
       try {
-        let parsedData = JSON.parse(fetchedData.body);
+        let parsedData = JSON.parse(fetchedData.body); // 解析获取到的JSON数据
         console.log("Fetched data:", JSON.stringify(parsedData, null, 2)); // 日志记录
         if (parsedData && parsedData.data && parsedData.data.length > 0) {
           const userData = parsedData.data[0]; // 获取用户数据
@@ -1195,7 +1229,3 @@ function Env(name, config) {
     }
   }(name, config); // 返回环境对象
 }
-    } catch (e) {
-        console.error(e);
-    }
-})();
