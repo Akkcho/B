@@ -4,17 +4,11 @@
 #!keyword=Blued_Chat
 
 [Argument]
-arg1 = switch,false,tag=Blued闪照
-arg2 = switch,true,tag=Blued_VIP
-arg3 = switch,false,tag=Blued位置
+arg1 = switch,true,tag=Blued_VIP
+
 
 
 [Script]
-http-request ^https:\/\/(burn-chatfiles|chatfiles|argo)\.(blued|bldimg)\.(cn|com)\/(((chatfiles|ingfiles|burn_chatfiles\/(videos|users))\/.*(mp4|jpg|(jpg|png))|blued\/qiniu\/chat)|.*).* script-path=https://gist.githubusercontent.com/Alex0510/23b38f5ad332e30d11a60a28ee4aa132/raw/bluedpic.js, enable = {arg1}, tag=blued_pic
-
-http-response ^https:\/\/.*\/users.*(setting|is_living=false|more/ios|flash|shadow|fair/exchange/count|\?aaid=|basic|map|\?column=) script-path=https://raw.githubusercontent.com/Akkcho/B/refs/heads/main/VVVV.js, requires-body=true, enable = {arg2}, tag=blued_VIP
-
-http-request https://((social|argo).blued.cn|\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b)/(users.*extra_info=|ticktocks/users|groups/nearby|users/selection|ticktocks/popups|ticktocks/info|ticktocks/banner).* script-path=https://gist.githubusercontent.com/Alex0510/23b38f5ad332e30d11a60a28ee4aa132/raw/bluedlocation.js, enable = {arg3}, tag=blued_location
-
+http-response ^https:\/\/.*\/users.*(setting|is_living=false|more/ios|flash|shadow|fair/exchange/count|\?aaid=|basic|map|\?column=) script-path=https://raw.githubusercontent.com/Akkcho/B/refs/heads/main/cs.js, requires-body=true, enable = {arg2}, tag=blued_VIP
 [MITM]
 hostname = api.finka.cn, gethornet.com, api.theorangemeetingplace.com, api.sqaces.com, social.blued.cn, argo.blued.cn, *.bldimg.com, ulogs.umengcloud.com, 220.249.135.81, 182.91.254.69， voice.irisgw.cn, 61.184.6.69, 111.180.138.55， blued.blued.cn, 36.158.248.73
