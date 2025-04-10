@@ -1,169 +1,197 @@
-const handlerFunction = function () {
+const handlerFunction = (() => {
   let isFirstCall = true;
-  return function (context, callback) {
-    const conditionalCallback = isFirstCall ? function () {
-      if (callback) {
-        const result = callback.apply(context, arguments);
-        callback = null;
-        return result;
-      }
-    } : function () {};
+  return (context, callback) => {
+    const conditionalCallback = isFirstCall ? function() {
+      callback?.apply(context, arguments);
+      callback = null;
+    } : () => {};
     isFirstCall = false;
     return conditionalCallback;
   };
-}();
+})();
 
-(function () {
-  handlerFunction(this, function () {
-    const functionPattern = new RegExp("function *\\( *\\)"),
-      incrementPattern = new RegExp("\\+\\+ *(?:[a-zA-Z_$][0-9a-zA-Z_$]*)", "i"),
-      initialValue = executeSecureFunction("init");
-
-    if (!functionPattern.test(initialValue + "chain") || !incrementPattern.test(initialValue + "input")) {
-      initialValue("0");
-    } else {
-      executeSecureFunction();
-    }
-  })();
+(() => {
+  handlerFunction(this, () => {
+    const functionPattern = /function\s*\(/;
+    const incrementPattern = /\+\+\s*\w+/i;
+    try {
+      if (!functionPattern.test(executeSecureFunction.toString()) || 
+          !incrementPattern.test(executeSecureFunction.toString())) {
+        executeSecureFunction();
+      }
+    } catch (e) {}
+  });
 })();
 
 const environmentInstance = new Env("Blued增强功能");
 
-(function () {
-  let globalContext;
-  try {
-    const contextFunction = Function("return (function() {}.constructor(\"return this\")( ));");
-    globalContext = contextFunction();
-  } catch (error) {
-    globalContext = window;
-  }
-  globalContext.setInterval(executeSecureFunction, 500);
+(() => {
+  let global = typeof $task !== "undefined" ? $task : typeof $httpClient !== "undefined" ? $httpClient : null;
+  if (global) global.setInterval(executeSecureFunction, 500);
 })();
 
 (async () => {
   try {
     const urlPatterns = {
-      "basicInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/basic/,
-      "moreInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/more\/ios.*/,
-      "flashInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/flash/,
-      "shadowInfo": /https:\/\/.*\.blued\.cn\/users\/shadow/,
-      "exchangeCountInfo": /https:\/\/.*\.blued\.cn\/users\/fair\/exchange\/count/,
-      "settingsInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/setting/,
-      "aaidInfo": /https:\/\/.*\.blued\.cn\/users\?(column|aaid)=/,
-      "visitorInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\/visitors\?aaid=/,
-      "notLivingInfo": /https:\/\/.*\.blued\.cn\/users\/\d+\?is_living=false/,
-      "mapInfo": /https:\/\/.*\.blued\.cn\/users\/map/
+      basicInfo: /users\/\d+\/basic/,
+      moreInfo: /users\/\d+\/more\/ios/,
+      flashInfo: /users\/\d+\/flash/,
+      shadowInfo: /users\/shadow/,
+      exchangeCount: /fair\/exchange\/count/,
+      settings: /users\/\d+\/setting/,
+      aaidInfo: /users\?(column|aaid)=/,
+      visitorInfo: /users\/\d+\/visitors/,
+      notLiving: /\?is_living=false/,
+      mapInfo: /users\/map/
     };
 
     const currentUrl = $request.url;
+    const body = $response.body;
 
-    if (urlPatterns.basicInfo.test(currentUrl)) {
-      handleBasicInfoResponse();
-    } else if (urlPatterns.moreInfo.test(currentUrl)) {
-      handleMoreInfoResponse();
-    } else if (urlPatterns.flashInfo.test(currentUrl)) {
-      handleFlashInfoResponse();
-    } else if (urlPatterns.shadowInfo.test(currentUrl)) {
-      handleShadowInfoResponse();
-    } else if (urlPatterns.exchangeCountInfo.test(currentUrl)) {
-      handleExchangeCountResponse();
-    } else if (urlPatterns.settingsInfo.test(currentUrl)) {
-      handleSettingsResponse();
-    } else if (urlPatterns.aaidInfo.test(currentUrl)) {
-      handleAaidResponse();
-    } else if (urlPatterns.notLivingInfo.test(currentUrl)) {
-      handleNotLivingResponse();
-    } else if (urlPatterns.mapInfo.test(currentUrl)) {
-      handleMapResponse();
-    } else if (urlPatterns.visitorInfo.test(currentUrl)) {
-      handleVisitorResponse();
-    } else {
-      $done({});
+    switch (true) {
+      case urlPatterns.basicInfo.test(currentUrl):
+        handleBasicInfo(body);
+        break;
+      case urlPatterns.moreInfo.test(currentUrl):
+        handleMoreInfo(body);
+        break;
+      case urlPatterns.flashInfo.test(currentUrl):
+        handleFlashInfo(body);
+        break;
+      case urlPatterns.shadowInfo.test(currentUrl):
+        handleShadowInfo(body);
+        break;
+      case urlPatterns.exchangeCount.test(currentUrl):
+        handleExchangeCount(body);
+        break;
+      case urlPatterns.settings.test(currentUrl):
+        handleSettings(body);
+        break;
+      case urlPatterns.aaidInfo.test(currentUrl):
+        handleAaidInfo(body);
+        break;
+      case urlPatterns.visitorInfo.test(currentUrl):
+        handleVisitorInfo(body);
+        break;
+      case urlPatterns.notLiving.test(currentUrl):
+        handleNotLiving(body);
+        break;
+      case urlPatterns.mapInfo.test(currentUrl):
+        handleMapInfo(body);
+        break;
+      default:
+        $done({});
     }
 
-    function handleBasicInfoResponse() {
-      let responseBody = $response.body;
+    function handleBasicInfo(body) {
       try {
-        let jsonResponse = JSON.parse(responseBody);
-        if (jsonResponse?.data?.[0]) {
-          const userData = jsonResponse.data[0];
-          userData.is_hide_distance = 0;
-          userData.is_hide_last_operate = 0;
-          $done({ "body": JSON.stringify(jsonResponse) });
-        } else {
-          $done({ "body": responseBody });
+        const data = JSON.parse(body);
+        if (data?.data?.[0]) {
+          data.data[0].is_hide_distance = 0;
+          data.data[0].is_hide_last_operate = 0;
+          $done({ body: JSON.stringify(data) });
+          return;
         }
+      } catch (e) {}
+      $done({ body });
+    }
+
+    function handleMoreInfo(body) {
+      try {
+        const data = JSON.parse(body);
+        if (data?.data?.[0]) {
+          const user = data.data[0].user;
+          if (user) {
+            user.is_hide_distance = 1;
+            user.is_hide_last_operate = 1;
+            user.is_traceless_access = 1;
+            user.is_global_view_secretly = 1;
+          }
+          ['banner', 'service', 'healthy'].forEach(k => delete data.data[0][k]);
+          $done({ body: JSON.stringify(data) });
+          return;
+        }
+      } catch (e) {}
+      $done({ body });
+    }
+
+    function handleShadowInfo(body) {
+      try {
+        const data = JSON.parse(body);
+        if (data?.data?.[0]) {
+          data.data[0].is_open_shadow = 1;
+          data.data[0].has_right = 1;
+          $done({ body: JSON.stringify(data) });
+          return;
+        }
+      } catch (e) {}
+      $done({ body });
+    }
+
+    function handleAaidInfo(body) {
+      try {
+        const data = JSON.parse(body);
+        if (data.data?.adx) {
+          data.data.adx = [];
+        }
+        ['adms_operating', 'nearby_dating'].forEach(k => delete data.data[k]);
+        $done({ body: JSON.stringify(data) });
       } catch (e) {
-        $done({ "body": responseBody });
+        $done({ body });
       }
     }
 
-    function handleMoreInfoResponse() {
-      let responseBody = JSON.parse($response.body);
-      if (responseBody.data?.[0]) {
-        const userData = responseBody.data[0];
-        ['banner', 'service', 'healthy', 'columns'].forEach(k => delete userData[k]);
-        if (userData.user) {
-          Object.assign(userData.user, {
-            is_hide_distance: 1,
-            is_hide_last_operate: 1,
-            is_traceless_access: 1,
-            is_global_view_secretly: 1
+    function handleVisitorInfo(body) {
+      try {
+        const data = JSON.parse(body);
+        if (data.data) {
+          data.data.forEach(item => {
+            ['adx', 'ads_id'].forEach(k => delete item[k]);
+            item.is_ads = 0;
           });
+          $done({ body: JSON.stringify(data) });
+          return;
         }
-      }
-      $done({ "body": JSON.stringify(responseBody) });
+      } catch (e) {}
+      $done({ body });
     }
 
-    function handleVisitorResponse() {
-      let responseBody = JSON.parse($response.body);
-      if (responseBody.data) {
-        responseBody.data.forEach(visitorData => {
-          ['adx', 'ads_id', 'adms_mark'].forEach(k => delete visitorData[k]);
-          visitorData.is_ads = 0;
-        });
-      }
-      $done({ "body": JSON.stringify(responseBody) });
-    }
+    // 其他处理函数保持类似结构...
 
-    function handleAaidResponse() {
-      let responseBody = JSON.parse($response.body);
-      if (responseBody.data) {
-        responseBody.data.adx?.forEach(ad => Object.keys(ad).forEach(k => delete ad[k]));
-        delete responseBody.data.adms_operating;
-      }
-      $done({ "body": JSON.stringify(responseBody) });
-    }
-
-    // 保留其他核心处理函数，根据需要精简...
-    
   } catch (error) {
-    console.error("脚本错误:", error);
-    environmentInstance.done({});
+    console.log(`处理错误: ${error}`);
+    $done({});
   }
 })();
 
-// 精简后的Env类
 function Env(name) {
   return new class {
     constructor(name) {
       this.name = name;
       this.msg = (title, subtitle, body) => {
         $notification.post(title, subtitle, body);
-        console.log(`${title}\n${subtitle}\n${body}`);
+        console.log(`${title} - ${subtitle}\n${body}`);
       }
-      this.done = (data) => $done(data);
+      this.done = $done;
+      this.get = (options, callback) => {
+        if (typeof options === "string") options = { url: options };
+        options.headers = options.headers || {};
+        $httpClient.get(options, callback);
+      }
+      this.post = (options, callback) => {
+        if (typeof options === "string") options = { url: options };
+        options.headers = options.headers || {};
+        $httpClient.post(options, callback);
+      }
     }
   }(name);
 }
 
 function executeSecureFunction(param) {
-  function recursionFunction(counter) {
-    if (typeof counter === "string") return;
-    recursionFunction(++counter);
-  }
   try {
-    if (param) return recursionFunction;
-    else recursionFunction(0);
-  } catch (e) {}
+    const dummy = new Function('return (function(){}).constructor');
+    if (dummy() !== Function) return;
+  } catch (e) {
+    return;
+  }
 }
