@@ -3,9 +3,9 @@
 blued功能脚本  悄悄查看消息  地图无需展示头像即可查看全部头像   聊天界面查看会员隐藏的距离
 **************************************
 [rewrite_local]
-^https:\/\/social\.blued\.cn\/users\/.*\/setting url script-response-body https://raw.githubusercontent.com/anyehttp/quantumult-x/main/Adguard/blued.js
-^https:\/\/social\.blued\.cn\/users\/shadow url script-response-body https://raw.githubusercontent.com/anyehttp/quantumult-x/main/Adguard/blued.js
-^https:\/\/social\.blued\.cn\/users\/.*\/basi url script-response-body https://raw.githubusercontent.com/anyehttp/quantumult-x/main/Adguard/blued.js
+^https:\/\/social\.blued\.cn\/users\/.*\/setting url script-response-body https://raw.githubusercontent.com/Akkcho/B/refs/heads/main/blued.js
+^https:\/\/social\.blued\.cn\/users\/shadow url script-response-body https://raw.githubusercontent.com/Akkcho/B/refs/heads/main/blued.js
+^https:\/\/social\.blued\.cn\/users\/.*\/basi url script-response-body https://raw.githubusercontent.com/Akkcho/B/refs/heads/main/blued.js
 [mitm]
 hostname = *.blued.*
 *************************************/
@@ -28,7 +28,4 @@ if (vip2.test($request.url) && anye.data && anye.data.length > 0) {
     anye.data[0].has_right = 1;
 }
 if (vip3.test($request.url) && anye.data && anye.data.length > 0) {
-    // 聊天界面查看会员隐藏的距离
-    anye.data[0].is_hide_distance = 0;
-}
-$done({ body: JSON.stringify(anye) });
+
